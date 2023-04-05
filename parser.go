@@ -344,7 +344,7 @@ func (parser *Parser) ParseAPI(searchDir string, mainAPIFile string, parseDepth 
 }
 
 // ParseAPIMultiSearchDir is like ParseAPI but for multiple search dirs.
-func (parser *Parser) ParseAPIMultiSearchDir(searchDirs []string, mainAPIFile string, parseDepth int) error {
+func (parser *Parser) ParseAPIMultiSearchDir(searchDirs []string, mainAPIFile string, parseDepth int, envs map[string]string) error {
 	for _, searchDir := range searchDirs {
 		parser.debug.Printf("Generate general API Info, search dir:%s", searchDir)
 
@@ -412,7 +412,7 @@ func (parser *Parser) ParseAPIMultiSearchDir(searchDirs []string, mainAPIFile st
 		return err
 	}
 
-	err = parser.packages.RangeFiles(parser.ParseRouterAPIInfo)
+	err = parser.packages.RangeFiles(parser.ParseRouterAPIInfo(, envs))
 	if err != nil {
 		return err
 	}
@@ -902,7 +902,7 @@ func matchExtension(extensionToMatch string, comments []*ast.Comment) (match boo
 }
 
 // ParseRouterAPIInfo parses router api info for given astFile.
-func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
+func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo, envs map[string]string) error {
 	for _, astDescription := range fileInfo.File.Decls {
 		if (fileInfo.ParseFlag & ParseOperations) == ParseNone {
 			continue
@@ -914,7 +914,7 @@ func (parser *Parser) ParseRouterAPIInfo(fileInfo *AstFileInfo) error {
 				// for per 'function' comment, create a new 'Operation' object
 				operation := NewOperation(parser, SetCodeExampleFilesDirectory(parser.codeExampleFilesDir))
 				for _, comment := range astDeclaration.Doc.List {
-					err := operation.ParseComment(comment.Text, fileInfo.File)
+					err := operation.ParseComment(comment.Text, fileInfo.File, envs)
 					if err != nil {
 						return fmt.Errorf("ParseComment error in file %s :%+v", fileInfo.Path, err)
 					}

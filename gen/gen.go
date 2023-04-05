@@ -135,7 +135,7 @@ type Config struct {
 }
 
 // Build builds swagger json file  for given searchDir and mainAPIFile. Returns json.
-func (g *Gen) Build(config *Config) error {
+func (g *Gen) Build(envs map[string]string, config *Config) error {
 	if config.Debugger != nil {
 		g.debug = config.Debugger
 	}
@@ -190,7 +190,7 @@ func (g *Gen) Build(config *Config) error {
 	p.ParseInternal = config.ParseInternal
 	p.RequiredByDefault = config.RequiredByDefault
 
-	if err := p.ParseAPIMultiSearchDir(searchDirs, config.MainAPIFile, config.ParseDepth); err != nil {
+	if err := p.ParseAPIMultiSearchDir(searchDirs, config.MainAPIFile, config.ParseDepth, envs); err != nil {
 		return err
 	}
 

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/spec"
+	"github.com/joho/godotenv"
 	"golang.org/x/tools/go/loader"
 )
 
@@ -104,7 +105,7 @@ func SetCodeExampleFilesDirectory(directoryPath string) func(*Operation) {
 }
 
 // ParseComment parses comment for given comment string and returns error if error occurs.
-func (operation *Operation) ParseComment(comment string, astFile *ast.File) error {
+func (operation *Operation) ParseComment(comment string, astFile *ast.File, envs map[string]string) error {
 	commentLine := strings.TrimSpace(strings.TrimLeft(comment, "/"))
 	if len(commentLine) == 0 {
 		return nil
@@ -144,7 +145,7 @@ func (operation *Operation) ParseComment(comment string, astFile *ast.File) erro
 	case headerAttr:
 		return operation.ParseResponseHeaderComment(lineRemainder, astFile)
 	case routerAttr:
-		return operation.ParseRouterComment(lineRemainder)
+		return operation.ParseRouterComment(lineRemainder, envs)
 	case securityAttr:
 		return operation.ParseSecurityComment(lineRemainder)
 	case deprecatedAttr:
@@ -692,16 +693,26 @@ func parseMimeTypeList(mimeTypeList string, typeList *[]string, format string) e
 
 var routerPattern = regexp.MustCompile(`^(/[\w./\-{}+:$]*)[[:blank:]]+\[(\w+)]`)
 
+func getRouteFromEnv(routeToGet string) {
+	err := godotenv.Load()
+}
+
 // ParseRouterComment parses comment for given `router` comment string.
-func (operation *Operation) ParseRouterComment(commentLine string) error {
+func (operation *Operation) ParseRouterComment(commentLine string, envs map[string]string) error {
 	matches := routerPattern.FindStringSubmatch(commentLine)
 	if len(matches) != 3 {
 		return fmt.Errorf("can not parse router comment \"%s\"", commentLine)
 	}
-
-	signature := RouteProperties{
-		Path:       matches[1],
-		HTTPMethod: strings.ToUpper(matches[2]),
+	var signature RouteProperties
+	routeEnv, _ := regexp.MatchString("^/", matches[1])
+	if routeEnv {
+		signature.Path = envs[matches[1]]
+		signature.HTTPMethod = strings.ToUpper(matches[2])
+	} else {
+		//signature := RouteProperties{
+		signature.Path = matches[1]
+		signature.HTTPMethod = strings.ToUpper(matches[2])
+		//}
 	}
 
 	if _, ok := allMethod[signature.HTTPMethod]; !ok {

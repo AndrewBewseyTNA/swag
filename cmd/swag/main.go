@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/urfave/cli/v2"
 
 	"github.com/swaggo/swag"
@@ -157,6 +158,17 @@ var initFlags = []cli.Flag{
 }
 
 func initAction(ctx *cli.Context) error {
+	envs := make(map[string]string)
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("GoDotEnv failed")
+	}
+	for _, pair := range os.Environ() {
+		keys := strings.Split(pair, "=")
+		keys[1] = envs[keys[0]]
+	}
+	swag.Envs.Router = envs
+
 	strategy := ctx.String(propertyStrategyFlag)
 
 	switch strategy {
@@ -179,7 +191,7 @@ func initAction(ctx *cli.Context) error {
 		return fmt.Errorf("not supported %s collectionFormat", ctx.String(collectionFormat))
 	}
 
-	return gen.New().Build(&gen.Config{
+	return gen.New().Build(envs, &gen.Config{
 		SearchDir:           ctx.String(searchDirFlag),
 		Excludes:            ctx.String(excludeFlag),
 		ParseExtension:      ctx.String(parseExtensionFlag),
